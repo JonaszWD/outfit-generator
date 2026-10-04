@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: wardrobe
+          POSTGRES_PASSWORD: ci-password
+          POSTGRES_DB: wardrobe_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U wardrobe -d wardrobe_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      ENV: test
+      DATABASE_URL: postgresql+psycopg://wardrobe:ci-password@localhost:5432/wardrobe_test
+      TEST_DATABASE_URL: postgresql+psycopg://wardrobe:ci-password@localhost:5432/wardrobe_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv python install 3.12
+      - run: uv sync --frozen
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run mypy
+      - run: uv run alembic upgrade head
+      - run: uv run pytest
