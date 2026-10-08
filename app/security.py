@@ -26,6 +26,7 @@ CSP = "; ".join(
         "font-src https://fonts.gstatic.com",
         "img-src 'self' data: blob:",
         "connect-src 'self'",
+        "manifest-src 'self'",
         "form-action 'self'",
         "base-uri 'none'",
         "frame-ancestors 'none'",
