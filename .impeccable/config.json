@@ -1,0 +1,45 @@
+{
+  "hook": {
+    "enabled": true,
+    "limits": {
+      "maxFindings": 5,
+      "maxChars": 8000
+    }
+  },
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "design-system-font",
+        "value": "eb garamond",
+        "createdAt": "2026-10-06T16:25:40.919Z",
+        "reason": "DESIGN.md Note on Font Substitutes names EB Garamond 300 as the Waldenburg substitute"
+      },
+      {
+        "rule": "overused-font",
+        "value": "inter",
+        "createdAt": "2026-10-06T16:25:40.937Z",
+        "reason": "DESIGN.md mandates Inter for body (CLAUDE.md: binding)"
+      },
+      {
+        "rule": "broken-image",
+        "value": "*",
+        "files": [
+          "app/templates/item_form.html"
+        ],
+        "createdAt": "2026-10-06T16:25:40.954Z",
+        "reason": "Agent: #preview img is hidden, src set by app.js from the chosen file"
+      },
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          "app/templates/base.html"
+        ],
+        "createdAt": "2026-10-07T09:10:37.086Z",
+        "reason": "Agent: .sheet has 24px padding on all sides (style.css); detector cannot resolve calc() with env(safe-area-inset-bottom)"
+      }
+    ]
+  }
+}

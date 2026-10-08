@@ -1,0 +1,97 @@
+{% set outfit = card.outfit %}
+<article class="card outfit" id="outfit-{{ outfit.id }}">
+  <div class="outfit-tiles">
+    {% for item in card.items %}
+      <img
+        src="{{ storage.url_for(card_key(item)) }}"
+        alt="{{ item.name or item.subtype }}{% if item.primary_color %}, {{ item.primary_color }}{% endif %}"
+        loading="lazy"
+      />
+    {% endfor %}
+  </div>
+  <div class="card-body">
+    <div class="card-meta">
+      <span class="badge">Score {{ card.score_percent }}%</span>
+      {% if card.adjusted_percent is not none %}
+        {% set by = card.adjusted_by or ["feedback"] %}
+        <span class="badge">Adjusted by {{ "your style references" if by == ["style"] else "your feedback and references" if by|length > 1 else "your feedback" }}: {{ card.adjusted_percent }}%</span>
+      {% endif %}
+      {% for tag in outfit.occasions %}<span class="badge">{{ tag }}</span>{% endfor %}
+      {% if outfit.favorite %}<span class="badge">Saved</span>{% endif %}
+    </div>
+    <ul class="reasons">
+      {% for reason in card.reasons %}<li>{{ reason }}</li>{% endfor %}
+      {% for note in card.adjustment_notes or [] %}<li>{{ note }}</li>{% endfor %}
+    </ul>
+    {% if card.unavailable %}
+      <p class="error" role="status">
+        Not available right now:
+        {% for item in card.unavailable %}{{ item.name or item.subtype }} ({{ "archived" if item.archived_at else item.availability.value }}){{ ", " if not loop.last }}{% endfor %}.
+      </p>
+    {% endif %}
+
+    <form
+      class="rating"
+      hx-post="/outfits/{{ outfit.id }}/feedback"
+      hx-target="#outfit-{{ outfit.id }}"
+      hx-swap="outerHTML"
+      aria-label="Rate this outfit"
+    >
+      {% if card.rating == 0 %}
+        <div class="form-actions">
+          <button class="btn btn-outline" type="submit" name="rating" value="up">Like</button>
+          <button class="btn btn-outline" type="submit" name="rating" value="down">Dislike</button>
+        </div>
+        <details>
+          <summary class="caption">Why dislike?</summary>
+          <label class="visually-hidden" for="reason-{{ outfit.id }}">If you dislike it, why?</label>
+          <select class="input" id="reason-{{ outfit.id }}" name="reason">
+            <option value="">No reason</option>
+            {% for r in reasons_for_dislike %}<option value="{{ r }}">{{ r|capitalize }}</option>{% endfor %}
+          </select>
+        </details>
+      {% else %}
+        <p class="caption" role="status">You {{ "liked" if card.rating > 0 else "disliked" }} this outfit.</p>
+        <button class="btn btn-text" type="submit" name="rating" value="clear">Undo</button>
+      {% endif %}
+    </form>
+
+    <div class="form-actions">
+      {% if not outfit.favorite %}
+        <button
+          class="btn btn-primary"
+          type="button"
+          hx-post="/outfits/{{ outfit.id }}/save"
+          hx-target="#outfit-{{ outfit.id }}"
+          hx-swap="outerHTML"
+        >Save</button>
+      {% endif %}
+      <button
+        class="btn btn-text"
+        type="button"
+        hx-post="/outfits/{{ outfit.id }}/delete"
+        hx-target="#outfit-{{ outfit.id }}"
+        hx-swap="outerHTML"
+      >{{ "Delete" if outfit.favorite else "Dismiss" }}</button>
+    </div>
+
+    {% if outfit.favorite %}
+      <details>
+        <summary class="caption">Occasions</summary>
+        <form
+          class="stack"
+          hx-post="/outfits/{{ outfit.id }}/occasions"
+          hx-target="#outfit-{{ outfit.id }}"
+          hx-swap="outerHTML"
+        >
+          <div class="chips" role="group" aria-label="Occasions for this outfit">
+            {% for o in vocab.OCCASIONS %}
+              <label class="chip"><input type="checkbox" name="occasions" value="{{ o }}" {{ "checked" if o in outfit.occasions }} /> {{ o|capitalize }}</label>
+            {% endfor %}
+          </div>
+          <button class="btn btn-outline" type="submit">Save occasions</button>
+        </form>
+      </details>
+    {% endif %}
+  </div>
+</article>

@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Preferences · Wardrobe{% endblock %}
+{% block content %}
+  <div class="page-head">
+    <h1 class="display-md">Preferences</h1>
+    <a class="btn btn-outline" href="/account">Account</a>
+  </div>
+  {% if notice %}<p class="notice" role="status">{{ notice }}</p>{% endif %}
+
+  <div class="stack">
+    <section class="panel stack" aria-labelledby="city-heading">
+      <h2 class="title-md" id="city-heading">Home city</h2>
+      <p class="caption">Used for weather. Only the city and its coordinates (rounded to ~1 km) go to Open-Meteo.</p>
+      {% if prefs.home_city %}
+        <p class="body-strong">{{ prefs.home_city }}</p>
+        <form method="post" action="/settings/city">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+          <input type="hidden" name="clear" value="1" />
+          <button class="btn btn-outline" type="submit">Remove home city</button>
+        </form>
+      {% else %}
+        <p class="caption">No city set. Without one, choose a season by hand.</p>
+      {% endif %}
+      <form class="form-actions" method="post" action="/settings/city/search">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+        <label for="city-q">Find your city</label>
+        <input class="input" id="city-q" name="q" type="search" value="{{ query }}" autocomplete="off" required />
+        <button class="btn btn-outline" type="submit">Search</button>
+      </form>
+      {% if city_error %}<p class="error" role="alert">{{ city_error }}</p>{% endif %}
+      {% if places %}
+        <ul class="reasons" aria-label="Matching cities">
+          {% for place in places %}
+            <li>
+              <form class="form-actions" method="post" action="/settings/city">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+                <input type="hidden" name="name" value="{{ place.name }}" />
+                <input type="hidden" name="latitude" value="{{ place.latitude }}" />
+                <input type="hidden" name="longitude" value="{{ place.longitude }}" />
+                <span>{{ place.name }}</span>
+                <button class="btn btn-outline" type="submit">Use this city</button>
+              </form>
+            </li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </section>
+
+    <form class="panel stack" method="post" action="/settings/preferences" aria-labelledby="style-heading">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+      <h2 class="title-md" id="style-heading">Style</h2>
+      <div class="field {{ 'has-error' if errors.color_strictness }}">
+        <label for="color_strictness">Color strictness: <output id="strictness-out">{{ prefs.color_strictness }}</output></label>
+        <input id="color_strictness" name="color_strictness" type="range" min="0" max="1" step="0.05" value="{{ prefs.color_strictness }}" data-output="#strictness-out" aria-describedby="strictness-help" />
+        <p class="caption" id="strictness-help">Loose (0) allows bolder color mixes. Strict (1) sticks to neutrals and one accent color. 0.5 is the default.</p>
+        {% if errors.color_strictness %}<p class="error" role="alert">{{ errors.color_strictness }}</p>{% endif %}
+      </div>
+      <div class="field">
+        <label for="units">Temperature units</label>
+        <select class="input" id="units" name="units">
+          <option value="metric" {{ "selected" if prefs.units == "metric" }}>Celsius (°C)</option>
+          <option value="imperial" {{ "selected" if prefs.units == "imperial" }}>Fahrenheit (°F)</option>
+        </select>
+        {% if errors.units %}<p class="error" role="alert">{{ errors.units }}</p>{% endif %}
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" type="submit">Save preferences</button>
+      </div>
+    </form>
+
+    <section class="panel stack" aria-labelledby="refs-heading">
+      <h2 class="title-md" id="refs-heading">Style references</h2>
+      <p>Photos of outfits you admire can nudge suggestions toward that look.</p>
+      <a class="btn btn-outline" href="/settings/style">Manage reference photos</a>
+    </section>
+
+    <section class="panel stack" aria-labelledby="personal-heading">
+      <h2 class="title-md" id="personal-heading">Personalization</h2>
+      <p>Likes and dislikes re-rank suggestions with a small, capped adjustment. The base score is always shown.</p>
+      <p class="caption">{{ summary.ratings }} rating{{ "" if summary.ratings == 1 else "s" }}: {{ summary.likes }} liked, {{ summary.dislikes }} disliked.</p>
+      {% if summary.active %}
+        <table class="plain">
+          <caption class="caption">What changed because of your feedback</caption>
+          <thead><tr><th scope="col">Rule</th><th scope="col">Default weight</th><th scope="col">Your weight</th></tr></thead>
+          <tbody>
+            {% for rule, base, tuned in summary.weights %}
+              <tr><th scope="row">{{ rule|capitalize }}</th><td>{{ "%.3f"|format(base) }}</td><td>{{ "%.3f"|format(tuned) }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <ul class="reasons">
+          {% if summary.pairs_up %}<li>{{ summary.pairs_up }} liked piece pairing{{ "" if summary.pairs_up == 1 else "s" }} get a small boost.</li>{% endif %}
+          {% if summary.pairs_down %}<li>{{ summary.pairs_down }} disliked piece pairing{{ "" if summary.pairs_down == 1 else "s" }} get a small penalty.</li>{% endif %}
+        </ul>
+      {% else %}
+        <p class="caption">No adjustment yet: suggestions use the default scoring.</p>
+      {% endif %}
+      <form method="post" action="/settings/personalization/reset">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+        <button class="btn btn-outline" type="submit" {{ "disabled" if not summary.ratings }}>Reset personalization</button>
+      </form>
+    </section>
+  </div>
+{% endblock %}

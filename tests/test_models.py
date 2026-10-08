@@ -46,7 +46,6 @@ def test_item_roundtrip_with_arrays(session: Session) -> None:
         primary_color="navy",
         secondary_colors=["white", "red"],
         seasons=["spring", "fall"],
-        formality=3,
     )
     session.expire_all()
     loaded = session.get(Item, item.id)
@@ -55,26 +54,11 @@ def test_item_roundtrip_with_arrays(session: Session) -> None:
     assert loaded.source is Source.OWNED
     assert loaded.secondary_colors == ["white", "red"]
     assert loaded.seasons == ["spring", "fall"]
-    assert loaded.formality == 3
-
-
-@pytest.mark.parametrize("formality", [0, 6])
-def test_item_formality_check_rejects(session: Session, formality: int) -> None:
-    user = make_user(session)
-    with pytest.raises(IntegrityError, match="ck_items_formality"):
-        make_item(session, user, formality=formality)
-    session.rollback()
-
-
-@pytest.mark.parametrize("formality", [1, 5])
-def test_item_formality_check_accepts_bounds(session: Session, formality: int) -> None:
-    user = make_user(session)
-    assert make_item(session, user, formality=formality).id is not None
 
 
 def test_outfit_roundtrip_with_array(session: Session) -> None:
     user = make_user(session)
-    outfit = Outfit(user_id=user.id, item_ids=[1, 2, 3], score=0.75, occasion="work")  # type: ignore[arg-type]
+    outfit = Outfit(user_id=user.id, item_ids=[1, 2, 3], score=0.75)  # type: ignore[arg-type]
     session.add(outfit)
     session.flush()
     session.expire_all()
@@ -90,6 +74,7 @@ def test_candidate_roundtrip_and_unique(session: Session) -> None:
     cand = Candidate(
         user_id=user.id,  # type: ignore[arg-type]
         url="https://shop.example/p/1",
+        url_hash="a" * 64,
         title="Shirt",
         price=Decimal("29.90"),
         item_id=item.id,
@@ -102,7 +87,14 @@ def test_candidate_roundtrip_and_unique(session: Session) -> None:
     assert loaded.price == Decimal("29.90")
     assert loaded.item_id == item.id
 
-    session.add(Candidate(user_id=user.id, url="https://shop.example/p/1"))  # type: ignore[arg-type]
+    session.add(Candidate(user_id=user.id, url="https://shop.example/p/1", url_hash="a" * 64))  # type: ignore[arg-type]
     with pytest.raises(IntegrityError):
         session.flush()
     session.rollback()
+
+
+def test_photo_candidates_have_no_url_and_never_collide(session: Session) -> None:
+    user = make_user(session)
+    for _ in range(2):
+        session.add(Candidate(user_id=user.id))  # type: ignore[arg-type]
+    session.flush()  # two rows with NULL url_hash are fine

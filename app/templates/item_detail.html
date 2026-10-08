@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}{{ item.name or item.subtype }} · Wardrobe{% endblock %}
+{% block content %}
+  <p class="caption"><a href="/closet">&larr; Closet</a></p>
+  <div class="detail">
+    <img src="{{ storage.url_for(display_key(item)) }}" alt="{{ item.name or item.subtype }}" />
+    <div class="stack">
+      <h1 class="display-md">{{ item.name or (item.subtype or "Untagged item")|capitalize }}</h1>
+      {% if item.archived_at %}<p class="notice" role="status">Archived. It is hidden from your closet, suggestions and statistics.</p>{% endif %}
+      {% if duplicate %}
+        <p class="notice" role="status">
+          {% if duplicate.level == "near-identical" %}Looks like a duplicate of{% else %}Similar to{% endif %}
+          your <a href="/items/{{ duplicate.item_id }}">{{ duplicate.description }}</a>.
+          Owning both adds few new outfits.
+        </p>
+      {% endif %}
+      {% if not item.tags_confirmed %}<p><a class="btn btn-outline" href="/items/{{ item.id }}/review">Review tags</a></p>{% endif %}
+      <dl class="tags">
+        <div><dt>Category</dt><dd>{{ (item.category.value if item.category else "—")|capitalize }}</dd></div>
+        <div><dt>Type</dt><dd>{{ (item.subtype or "—")|capitalize }}</dd></div>
+        <div>
+          <dt>Primary color</dt>
+          <dd><span class="swatch swatch-lg" style="background: {{ color_hex(item.primary_color) }}"></span>{{ (item.primary_color or "—")|capitalize }}</dd>
+        </div>
+        <div>
+          <dt>Secondary colors</dt>
+          <dd>
+            {% for c in item.secondary_colors %}
+              <span class="swatch swatch-lg" style="background: {{ color_hex(c) }}" title="{{ c }}"></span>{{ c|capitalize }}{{ "," if not loop.last }}
+            {% else %}—{% endfor %}
+          </dd>
+        </div>
+        <div><dt>Pattern</dt><dd>{{ (item.pattern or "—")|capitalize }}</dd></div>
+        <div><dt>Seasons</dt><dd>{% for s in item.seasons %}<span class="badge">{{ s }}</span>{% else %}—{% endfor %}</dd></div>
+        <div><dt>Material</dt><dd>{{ (item.material or "—")|capitalize }}</dd></div>
+        <div><dt>Layer</dt><dd>{{ (item.layer_role or "—")|capitalize }}</dd></div>
+        {% if item.notes %}<div><dt>Notes</dt><dd>{{ item.notes }}</dd></div>{% endif %}
+      </dl>
+      <form class="form-actions" method="post" action="/items/{{ item.id }}/availability">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+        <label class="caption" for="availability">Availability</label>
+        <select class="input" id="availability" name="value">
+          {% for a in availabilities %}<option value="{{ a.value }}" {{ "selected" if a == item.availability }}>{{ {"available": "Available", "laundry": "In the laundry", "unavailable": "Unavailable (lost, lent, donated)"}[a.value] }}</option>{% endfor %}
+        </select>
+        <button class="btn btn-outline" type="submit">Update</button>
+      </form>
+      <div class="form-actions">
+        <a class="btn btn-primary" href="/items/{{ item.id }}/edit">Edit</a>
+        {% if item.archived_at %}
+          <form method="post" action="/items/{{ item.id }}/restore">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+            <button class="btn btn-outline" type="submit">Restore</button>
+          </form>
+        {% else %}
+          <form method="post" action="/items/{{ item.id }}/archive">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+            <input type="hidden" name="back" value="closet" />
+            <button class="btn btn-outline" type="submit">Archive</button>
+          </form>
+        {% endif %}
+        <button class="btn btn-text" type="button" data-dialog-open="#delete-dialog">Delete permanently</button>
+      </div>
+    </div>
+  </div>
+
+  <dialog id="delete-dialog">
+    <form class="stack" method="post" action="/items/{{ item.id }}/delete">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+      <h2 class="display-sm">Delete this item?</h2>
+      <p>The item and its photo will be removed for good. To keep it but hide it, archive it instead. This cannot be undone.</p>
+      <div class="form-actions">
+        <button class="btn btn-primary" type="submit">Delete</button>
+        <button class="btn btn-outline" type="button" data-dialog-close>Cancel</button>
+      </div>
+    </form>
+  </dialog>
+{% endblock %}

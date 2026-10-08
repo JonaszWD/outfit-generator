@@ -1,0 +1,34 @@
+{% if notice %}<p class="notice" role="status">{{ notice }}</p>{% endif %}
+{% if weather_note %}<p class="caption" role="status">{{ weather_note }}</p>{% endif %}
+{% if style_state %}<p class="caption" role="status">Ranking: {{ "with your reference photos" if style_state == "on" else "standard rules only" }}.</p>{% endif %}
+{% if cards %}
+  <div class="outfit-grid">
+    {% for card in cards %}{% include "_outfit_card.html" %}{% endfor %}
+  </div>
+  <form class="form-actions" hx-post="/outfits/generate" hx-target="#suggestions" hx-swap="innerHTML">
+    <input type="hidden" name="season" value="{{ season }}" />
+    <input type="hidden" name="today" value="{{ today }}" />
+    <input type="hidden" name="style_ai" value="{{ style_ai }}" />
+    {% for key in seen %}<input type="hidden" name="seen" value="{{ key }}" />{% endfor %}
+    <button class="btn btn-outline" type="submit">Regenerate</button>
+  </form>
+{% elif exhausted %}
+  <div class="panel stack" role="status">
+    <h2 class="display-sm">That's every outfit I can suggest right now</h2>
+    <p>Add more pieces, or change the season, to see new ideas.</p>
+    <form hx-post="/outfits/generate" hx-target="#suggestions" hx-swap="innerHTML">
+      <input type="hidden" name="season" value="{{ season }}" />
+      <input type="hidden" name="today" value="{{ today }}" />
+    <input type="hidden" name="style_ai" value="{{ style_ai }}" />
+      <button class="btn btn-outline" type="submit">Start over</button>
+    </form>
+  </div>
+{% else %}
+  <div class="orb-card" role="status">
+    <h2 class="display-sm">No outfits yet</h2>
+    <ul class="reasons">
+      {% for problem in problems %}<li>{{ problem }}</li>{% endfor %}
+    </ul>
+    <a class="btn btn-primary" href="/items/new" data-dialog-open="#add-sheet">Add photos</a>
+  </div>
+{% endif %}

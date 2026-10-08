@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Reset your password · Wardrobe{% endblock %}
+{% block content %}
+  <div class="auth-card stack">
+    <h1 class="display-md">Reset your password</h1>
+    {% if message %}<p class="notice" role="status">{{ message }}</p>{% endif %}
+    {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+    <form class="stack panel" method="post" action="/forgot">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+      <div class="field">
+        <label for="email">Email</label>
+        <input class="input" id="email" name="email" type="email" autocomplete="username" required />
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" type="submit">Send reset link</button>
+        <a href="/login">Back to log in</a>
+      </div>
+    </form>
+  </div>
+{% endblock %}

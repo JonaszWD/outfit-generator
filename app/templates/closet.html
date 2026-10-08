@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Closet · Wardrobe{% endblock %}
+{% block content %}
+  <div class="page-head">
+    <h1 class="display-md">Your closet</h1>
+  </div>
+
+  <form
+    class="filters"
+    method="get"
+    action="/closet"
+    hx-get="/closet"
+    hx-target="#results"
+    hx-push-url="true"
+    hx-trigger="change, input delay:300ms from:#q"
+  >
+    <input
+      class="input search"
+      id="q"
+      type="search"
+      name="q"
+      placeholder="Search name or type"
+      aria-label="Search"
+      value="{{ filters.q or '' }}"
+    />
+    <select name="category" aria-label="Category">
+      <option value="">All categories</option>
+      {% for c in vocab.SUBTYPES %}
+        <option value="{{ c.value }}" {{ "selected" if filters.category == c }}>{{ c.value|capitalize }}</option>
+      {% endfor %}
+    </select>
+    <label class="chip">
+      <input type="checkbox" name="review" value="1" {{ "checked" if filters.needs_review }} />Needs review
+    </label>
+    <details class="more-filters" {{ "open" if filters.color or filters.season or filters.show }}>
+      <summary class="caption">More filters</summary>
+      <div class="filters">
+      <select name="color" aria-label="Color">
+        <option value="">Any color</option>
+        {% for c in vocab.COLORS %}
+          <option value="{{ c.name }}" {{ "selected" if filters.color == c.name }}>{{ c.name|capitalize }}</option>
+        {% endfor %}
+      </select>
+      <select name="season" aria-label="Season">
+        <option value="">Any season</option>
+        {% for s in vocab.SEASONS %}
+          <option value="{{ s }}" {{ "selected" if filters.season == s }}>{{ s|capitalize }}</option>
+        {% endfor %}
+      </select>
+      <select name="show" aria-label="Availability">
+        <option value="">All active items</option>
+        <option value="laundry" {{ "selected" if filters.show == "laundry" }}>In the laundry</option>
+        <option value="unavailable" {{ "selected" if filters.show == "unavailable" }}>Unavailable</option>
+        <option value="archived" {{ "selected" if filters.show == "archived" }}>Archived</option>
+      </select>
+      </div>
+    </details>
+    <noscript><button class="btn btn-outline" type="submit">Apply</button></noscript>
+  </form>
+
+  <section id="results">{% include "_closet_results.html" %}</section>
+{% endblock %}

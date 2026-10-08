@@ -16,21 +16,32 @@ services:
       timeout: 3s
       retries: 10
 
+  # Development: the source is bind-mounted and Uvicorn reloads on change, so editing Python,
+  # templates, CSS or JS needs no rebuild and no restart of compose. Only a dependency change
+  # (pyproject.toml / uv.lock) or a Dockerfile change needs `make docker-rebuild`.
   app:
     build: .
+    env_file:
+      - path: .env
+        required: false
     depends_on:
       db:
         condition: service_healthy
     environment:
       ENV: ${ENV:-development}
+      # Docker Desktop (macOS/Windows) does not always forward file-change events into the
+      # container. If edits are not picked up, set WATCH_POLLING=true in .env.
+      WATCHFILES_FORCE_POLLING: ${WATCH_POLLING:-false}
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
     ports:
       - "8000:8000"
     volumes:
       - .:/app
+      - u2net:/root/.u2net  # rembg model cache (downloaded on first use)
     command: >
       sh -c "alembic upgrade head &&
-             uvicorn app.main:create_app --factory --reload --host 0.0.0.0 --port 8000"
+             uvicorn app.main:create_app --factory --reload --reload-dir app --host 0.0.0.0 --port 8000"
 
 volumes:
   pgdata:
+  u2net:

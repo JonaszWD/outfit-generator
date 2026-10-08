@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Closet stats · Wardrobe{% endblock %}
+{% macro rows(pairs) %}
+  {% for item, count in pairs %}
+    <li class="rank-row">
+      <img class="rank-thumb" src="{{ storage.url_for(card_key(item)) }}" alt="" />
+      <a href="/items/{{ item.id }}">{{ item.name or (item.subtype or "")|capitalize }}</a>
+      <span class="caption">{{ count }} outfit{{ "" if count == 1 else "s" }}</span>
+    </li>
+  {% endfor %}
+{% endmacro %}
+{% block content %}
+  <div class="page-head">
+    <h1 class="display-md">Closet stats</h1>
+    <a class="btn btn-outline" href="/outfits">Suggest outfits</a>
+  </div>
+
+  {% if view.total == 0 %}
+    <div class="orb-card" role="status">
+      <h2 class="display-sm">No outfits yet</h2>
+      <ul class="reasons">{% for problem in view.problems %}<li>{{ problem }}</li>{% endfor %}</ul>
+      <a class="btn btn-primary" href="/items/new" data-dialog-open="#add-sheet">Add photos</a>
+    </div>
+  {% else %}
+    <div class="panel stack">
+      <p class="caption-uppercase">Valid outfits</p>
+      <p class="display-lg">{{ "{:,}".format(view.total) }}</p>
+      <p class="caption">
+        Top and bottom (or dress) with shoes, optionally one layer. Accessories are not counted.
+      </p>
+    </div>
+
+    <div class="stats-columns">
+      <section>
+        <h2 class="display-sm">Most versatile</h2>
+        <ul class="rank-list">{{ rows(most) }}</ul>
+      </section>
+      {% if least %}
+        <section>
+          <h2 class="display-sm">Least versatile</h2>
+          <ul class="rank-list">{{ rows(least) }}</ul>
+        </section>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  {% if view.unconfirmed %}
+    <p class="caption">
+      {{ view.unconfirmed }} item{{ "" if view.unconfirmed == 1 else "s" }} not counted yet because
+      the tags are not confirmed.
+      <a href="/closet?review=1">Review them</a>
+    </p>
+  {% endif %}
+{% endblock %}

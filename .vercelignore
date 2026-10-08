@@ -1,0 +1,23 @@
+# Not part of the deployed function (keeps the bundle small and nothing private uploaded)
+.env
+.env.*
+.venv
+.git
+.github
+.claude
+.impeccable
+.hypothesis
+.mypy_cache
+.pytest_cache
+.ruff_cache
+__pycache__
+media
+tests
+scripts
+docs
+docker
+Dockerfile
+docker-compose.yml
+migrations
+uv.lock
+*.md

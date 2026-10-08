@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Style references · Wardrobe{% endblock %}
+{% block content %}
+  <div class="page-head">
+    <h1 class="display-md">Style references</h1>
+    <a class="btn btn-outline" href="/settings/preferences">Preferences</a>
+  </div>
+  {% if notice %}<p class="notice" role="status">{{ notice }}</p>{% endif %}
+
+  <div class="stack">
+    <section class="panel stack" aria-labelledby="refs-intro">
+      <h2 class="title-md" id="refs-intro">Outfits you like</h2>
+      <p>Add photos of outfits you admire. A vision model reads their colors, patterns and garments, and suggestions that resemble them rank a little higher. Turn it on or off on the Outfits page to compare.</p>
+      <p class="caption">
+        {% if backend == "ollama" %}Photos are read by a local model on this machine. Nothing is sent to a third party.
+        {% elif backend == "claude" %}Each photo is sent to the Anthropic API to be read (location data is stripped first).
+        {% else %}Offline placeholder backend: the style it reads is fake. Set STYLE_BACKEND to use a real model.{% endif %}
+        The valid outfits and their counts never change; only the order does.
+      </p>
+    </section>
+
+    <form class="panel stack" method="post" action="/settings/style/references" enctype="multipart/form-data">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+      <div class="field">
+        <label for="ref-images">Add reference photos</label>
+        <input class="input" id="ref-images" name="images" type="file" multiple data-resize accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" required />
+        <p class="caption">Up to {{ per_upload }} at a time, {{ limit }} in total ({{ references|length }} added). Reading a photo can take a few seconds.</p>
+      </div>
+      {% if added %}<p class="body-strong" role="status">{{ added }} photo{{ "" if added == 1 else "s" }} added.</p>{% endif %}
+      {% for name, message in problems %}
+        <p class="error" role="alert">{% if name %}{{ name }}: {% endif %}{{ message }}</p>
+      {% endfor %}
+      <div class="form-actions">
+        <button class="btn btn-primary" type="submit" {{ "disabled" if references|length >= limit }}>Add photos</button>
+      </div>
+    </form>
+
+    {% if profile %}
+      <section class="panel stack" aria-labelledby="profile-heading">
+        <h2 class="title-md" id="profile-heading">Your style, as read from {{ profile.samples }} photo{{ "" if profile.samples == 1 else "s" }}</h2>
+        <ul class="reasons">
+          <li>Colors:
+            {% for name, share in profile.colors.items()|sort(attribute="1", reverse=True) %}
+              <span class="swatch" style="background: {{ color_hex(name) }}" title="{{ name }}"></span>{{ name }}{{ ", " if not loop.last }}
+            {% endfor %}
+          </li>
+          {% if profile.subtypes %}<li>Garments: {{ profile.subtypes.keys()|join(", ") }}</li>{% endif %}
+        </ul>
+      </section>
+
+      <div class="grid">
+        {% for ref in references %}
+          <article class="card">
+            <img src="{{ ref.thumb }}" alt="Reference outfit: {{ ref.style.summary or 'photo' }}" loading="lazy" />
+            <div class="card-body">
+              <p class="caption">{{ ref.style.summary }}</p>
+              <p class="caption">{{ ref.style.colors|join(", ") }}</p>
+              <form method="post" action="/settings/style/references/{{ ref.id }}/delete">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+                <button class="btn btn-outline" type="submit">Remove</button>
+              </form>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="caption">No reference photos yet.</p>
+    {% endif %}
+  </div>
+{% endblock %}

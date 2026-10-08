@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Analyze a piece · Wardrobe{% endblock %}
+{% block content %}
+  <div class="page-head">
+    <h1 class="display-md">Should I buy it?</h1>
+    <a class="btn btn-outline" href="/candidates">Past analyses</a>
+  </div>
+  <p class="intro">Paste a product link to see how many new outfits it would unlock with your closet.</p>
+
+  {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+
+  <form class="stack panel" method="post" action="/candidates" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+    <div class="field">
+      <label for="url">Product link</label>
+      <input class="input" id="url" name="url" type="url" inputmode="url" placeholder="https://shop.example/product/navy-oxford-shirt" value="{{ url }}" autocomplete="off" />
+      <p class="caption">Only that page is read. Up to {{ limit }} analyses per hour.</p>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary" type="submit">Analyze link</button>
+    </div>
+
+    <details class="alt-photo">
+      <summary class="body-strong">No link? Upload a photo instead</summary>
+      <div class="field">
+        <label for="image">Photo of the piece</label>
+        <input class="input" id="image" name="image" type="file" data-resize accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" />
+        <p class="caption">For sites that block us, or screenshots.</p>
+      </div>
+      <button class="btn btn-outline" type="submit">Analyze photo</button>
+    </details>
+  </form>
+{% endblock %}

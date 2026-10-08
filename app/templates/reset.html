@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Choose a new password · Wardrobe{% endblock %}
+{% block content %}
+  <div class="auth-card stack">
+    <h1 class="display-md">Choose a new password</h1>
+    {% if not valid %}
+      <p class="error" role="alert">This reset link is invalid, has expired, or was already used.</p>
+      <a class="btn btn-outline" href="/forgot">Ask for a new link</a>
+    {% else %}
+      {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+      <form class="stack panel" method="post" action="/reset/{{ token }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+        <div class="field">
+          <label for="password">New password</label>
+          <input class="input" id="password" name="password" type="password" autocomplete="new-password" minlength="{{ min_length }}" required aria-describedby="password-hint" />
+          <p class="caption" id="password-hint">At least {{ min_length }} characters. Not a common password.</p>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-primary" type="submit">Save new password</button>
+        </div>
+      </form>
+    {% endif %}
+  </div>
+{% endblock %}

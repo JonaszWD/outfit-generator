@@ -1,0 +1,11 @@
+<div class="field {{ 'has-error' if errors.get('subtype') }} {{ 'low' if 'subtype' in low_fields }}">
+  <label for="subtype">Type</label>
+  <select id="subtype" name="subtype" required {{ "disabled" if not subtype_options }}>
+    <option value="">{{ "Choose a type" if subtype_options else "Choose a category first" }}</option>
+    {% for s in subtype_options %}
+      <option value="{{ s }}" {{ "selected" if values.get("subtype") == s }}>{{ s|capitalize }}</option>
+    {% endfor %}
+  </select>
+  {% if errors.get("subtype") %}<p class="error">{{ errors["subtype"] }}</p>{% endif %}
+  {% if "subtype" in low_fields %}<p class="caption"><span class="badge">Please check</span> {{ (confidence.get("subtype", 0) * 100)|round|int }}% sure</p>{% endif %}
+</div>

@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Planner · Wardrobe{% endblock %}
+{% block content %}
+  <div class="page-head">
+    <h1 class="display-md">Weekly planner</h1>
+    <nav class="form-actions" aria-label="Weeks">
+      <a class="btn btn-outline" href="/planner?start={{ previous.isoformat() }}">Previous</a>
+      <a class="btn btn-outline" href="/planner">Today</a>
+      <a class="btn btn-outline" href="/planner?start={{ next.isoformat() }}">Next</a>
+    </nav>
+  </div>
+  <p class="caption">Week of {{ start.strftime("%-d %B %Y") }}.{% if weather_notice %} {{ weather_notice }}{% endif %}</p>
+
+  {% if not saved %}
+    <div class="orb-card" role="status">
+      <h2 class="display-sm">No saved outfits yet</h2>
+      <p>Save a few suggestions, then plan your week with them.</p>
+      <a class="btn btn-primary" href="/outfits">Find outfits</a>
+    </div>
+  {% endif %}
+
+  <div class="planner">
+    {% for entry in plan %}
+      <section class="panel stack" aria-labelledby="day-{{ entry.day.isoformat() }}">
+        <h2 class="title-md" id="day-{{ entry.day.isoformat() }}">{{ entry.day.strftime("%A %-d %b") }}</h2>
+        {% if entry.planned %}
+          <div class="outfit-tiles">
+            {% for item in entry.items %}
+              <img src="{{ storage.url_for(card_key(item)) }}" alt="{{ item.name or item.subtype }}{% if item.primary_color %}, {{ item.primary_color }}{% endif %}" loading="lazy" />
+            {% endfor %}
+          </div>
+          {% for warning in entry.warnings %}<p class="error" role="status">{{ warning }}</p>{% endfor %}
+          <form method="post" action="/planner/clear">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+            <input type="hidden" name="day" value="{{ entry.day.isoformat() }}" />
+            <button class="btn btn-outline" type="submit">Clear</button>
+          </form>
+        {% else %}
+          <p class="caption">Nothing planned.</p>
+        {% endif %}
+        {% if saved %}
+          <form class="form-actions" method="post" action="/planner/assign">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+            <input type="hidden" name="day" value="{{ entry.day.isoformat() }}" />
+            <label class="visually-hidden" for="outfit-{{ entry.day.isoformat() }}">Outfit for {{ entry.day.strftime("%A") }}</label>
+            <select class="input" id="outfit-{{ entry.day.isoformat() }}" name="outfit_id">
+              {% for card in saved %}
+                <option value="{{ card.outfit.id }}" {{ "selected" if entry.planned and entry.planned.outfit_id == card.outfit.id }}>
+                  {% for item in card.items %}{{ item.name or item.subtype }}{{ " + " if not loop.last }}{% endfor %}
+                </option>
+              {% endfor %}
+            </select>
+            <button class="btn btn-primary" type="submit">{{ "Change" if entry.planned else "Plan" }}</button>
+          </form>
+        {% endif %}
+      </section>
+    {% endfor %}
+  </div>
+{% endblock %}

@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Create account · Wardrobe{% endblock %}
+{% block content %}
+  <div class="auth-card stack">
+    <h1 class="display-md">Create your account</h1>
+    {% if closed %}
+      <div class="panel stack" role="status">
+        <p>New accounts are by invitation only. Ask the owner of this Wardrobe to add you.</p>
+        <a class="btn btn-outline" href="/login">Log in</a>
+      </div>
+    {% else %}
+    {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+    <form class="stack panel" method="post" action="/register">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+      <div class="field">
+        <label for="email">Email</label>
+        <input class="input" id="email" name="email" type="email" autocomplete="username" required value="{{ email }}" />
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input class="input" id="password" name="password" type="password" autocomplete="new-password" minlength="{{ min_length }}" required aria-describedby="password-hint" />
+        <p class="caption" id="password-hint">At least {{ min_length }} characters. Not a common password.</p>
+      </div>
+      {% if needs_invite %}
+        <div class="field">
+          <label for="invite">Invite code</label>
+          <input class="input" id="invite" name="invite" type="text" autocomplete="off" required />
+        </div>
+      {% endif %}
+      <div class="form-actions">
+        <button class="btn btn-primary" type="submit">Create account</button>
+      </div>
+    </form>
+    {% endif %}
+    <p class="caption">Already have an account? <a href="/login">Log in</a></p>
+  </div>
+{% endblock %}

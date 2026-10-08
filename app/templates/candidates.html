@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Past analyses · Wardrobe{% endblock %}
+{% block content %}
+  <div class="page-head">
+    <h1 class="display-md">Past analyses</h1>
+    <a class="btn btn-primary" href="/analyze">Analyze a piece</a>
+  </div>
+
+  {% if not rows %}
+    <div class="orb-card">
+      <h2 class="display-sm">Nothing analyzed yet</h2>
+      <p>Paste a product link to see what it would add to your closet.</p>
+      <a class="btn btn-primary" href="/analyze">Analyze a piece</a>
+    </div>
+  {% else %}
+    <ul class="rank-list">
+      {% for data in rows %}
+        {% set c = data.candidate %}
+        <li class="rank-row history-row">
+          {% if data.item %}<img class="rank-thumb" src="{{ storage.url_for(card_key(data.item)) }}" alt="" />{% else %}<span class="rank-thumb"></span>{% endif %}
+          <a href="/candidates/{{ c.id }}">{{ c.title or ("Uploaded photo" if not c.url else "Product link") }}</a>
+          <span class="caption">
+            {% if data.result %}
+              {% if data.result.kind == "accessory" %}fits {{ "{:,}".format(data.result.new_outfits) }} outfits{% else %}{{ "{:,}".format(data.result.new_outfits) }} new outfits{% endif %}
+              · {{ data.result.verdict }}
+            {% elif c.status.value == "failed" %}
+              failed
+            {% else %}
+              in progress
+            {% endif %}
+          </span>
+          {% if data.adopted %}<span class="badge">In closet</span>{% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+{% endblock %}

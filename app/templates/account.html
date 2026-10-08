@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Account · Wardrobe{% endblock %}
+{% block content %}
+  <div class="page-head">
+    <h1 class="display-md">Account</h1>
+  </div>
+  {% if notice %}<p class="notice" role="status">{{ notice }}</p>{% endif %}
+  {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+
+  <div class="stack">
+    <section class="panel stack" aria-labelledby="who">
+      <h2 class="title-md" id="who">Signed in as</h2>
+      <p>{{ user.email }}</p>
+      <p class="caption">{{ sessions }} active login{{ "" if sessions == 1 else "s" }}.</p>
+      <div class="form-actions">
+        <a class="btn btn-outline" href="/settings/preferences">Preferences and personalization</a>
+      </div>
+    </section>
+
+    <section class="panel stack" aria-labelledby="pw">
+      <h2 class="title-md" id="pw">Change password</h2>
+      <form class="stack" method="post" action="/account/password">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+        <div class="field">
+          <label for="current_password">Current password</label>
+          <input class="input" id="current_password" name="current_password" type="password" autocomplete="current-password" required />
+        </div>
+        <div class="field">
+          <label for="new_password">New password</label>
+          <input class="input" id="new_password" name="new_password" type="password" autocomplete="new-password" required />
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-primary" type="submit">Change password</button>
+        </div>
+      </form>
+      <form method="post" action="/account/logout-everywhere">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+        <button class="btn btn-outline" type="submit">Log out everywhere</button>
+      </form>
+    </section>
+
+    <section class="panel stack" aria-labelledby="data">
+      <h2 class="title-md" id="data">Your data</h2>
+      <p>Everything we store about you: data as JSON, photos in a zip.</p>
+      <div class="form-actions">
+        <a class="btn btn-outline" href="/account/export">Download my data</a>
+      </div>
+    </section>
+
+    <section class="panel stack" aria-labelledby="delete">
+      <h2 class="title-md" id="delete">Delete account</h2>
+      <p>Removes your account, items, outfits, analyses and photos. Cannot be undone.</p>
+      <form class="stack" method="post" action="/account/delete">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+        <div class="field">
+          <label for="delete_password">Your password</label>
+          <input class="input" id="delete_password" name="password" type="password" autocomplete="current-password" required />
+        </div>
+        <div class="field">
+          <label for="confirm">Type DELETE to confirm</label>
+          <input class="input" id="confirm" name="confirm" type="text" autocomplete="off" required />
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-outline" type="submit">Delete my account</button>
+        </div>
+      </form>
+    </section>
+  </div>
+{% endblock %}

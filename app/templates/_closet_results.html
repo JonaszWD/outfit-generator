@@ -1,0 +1,33 @@
+{% if review_count %}
+  <div class="panel review-banner">
+    <p class="body-strong">{{ review_count }} item{{ "" if review_count == 1 else "s" }} need{{ "s" if review_count == 1 }} review</p>
+    <div class="form-actions">
+      <a class="btn btn-outline" href="/closet?review=1">Show them</a>
+      <form method="post" action="/items/confirm-all">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+        <button class="btn btn-primary" type="submit" {{ "disabled" if low_review_count }}>Confirm all</button>
+      </form>
+    </div>
+    {% if low_review_count %}
+      <p class="caption">{{ low_review_count }} of them {{ "has" if low_review_count == 1 else "have" }} low-confidence fields. Review {{ "it" if low_review_count == 1 else "those" }} first.</p>
+    {% endif %}
+  </div>
+{% endif %}
+<p class="count caption" aria-live="polite">
+  {{ page.total }} item{{ "" if page.total == 1 else "s" }}
+  {% if filters.active %}· <a href="/closet">Clear filters</a>{% endif %}
+</p>
+{% if page.total == 0 and not filters.active %}
+  <div class="orb-card">
+    <h2 class="display-sm">Your closet is empty</h2>
+    <p>Upload photos of your clothes; we suggest the tags.</p>
+    <a class="btn btn-primary" href="/items/new" data-dialog-open="#add-sheet">Add your first photos</a>
+  </div>
+{% elif page.total == 0 %}
+  <div class="panel center">
+    <h2 class="display-sm">Nothing matches these filters</h2>
+    <a class="btn btn-outline" href="/closet">Clear filters</a>
+  </div>
+{% else %}
+  <div class="grid">{% include "_cards.html" %}</div>
+{% endif %}

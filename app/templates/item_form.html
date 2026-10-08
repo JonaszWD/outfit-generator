@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block title %}{{ "Review tags" if review else "Edit item" }} · Wardrobe{% endblock %}
+
+{% macro err(name) %}{% if errors.get(name) %}<p class="error" id="{{ name }}-error">{{ errors[name] }}</p>{% endif %}{% endmacro %}
+
+{% macro note(name) %}{% if name in low_fields %}<p class="caption"><span class="badge">Please check</span> {{ (confidence.get(name, 0) * 100)|round|int }}% sure</p>{% endif %}{% endmacro %}
+
+{% block content %}
+  <div class="page-head">
+    <h1 class="display-md">{{ "Review tags" if review else "Edit item" }}</h1>
+  </div>
+
+  {% if review and item.tagging_status.value == "failed" %}
+    <p class="error">Automatic tagging failed ({{ item.tagging_error }}). You can tag this item by hand.</p>
+  {% endif %}
+  {% for flag in flags %}<p class="caption">{{ flag }}</p>{% endfor %}
+  {% if review and not item.tags_confirmed and item.ai_tags %}
+    <p class="caption">Suggested by the tagger. Fields marked "Please check" are low confidence. Nothing is saved until you confirm.</p>
+  {% endif %}
+
+  <div class="review-layout">
+  {% if review %}
+    <img class="preview" src="{{ storage.url_for(display_key(item)) }}" alt="Item photo" />
+  {% endif %}
+  <form class="stack" method="post" action="{{ action }}" enctype="multipart/form-data" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+
+    {% if not review %}
+    <div class="field {{ 'has-error' if errors.get('image') }} {{ 'low' if 'image' in low_fields }}">
+      <label for="image">Photo</label>
+      {% if item %}
+        <img class="preview" id="current-photo" src="{{ storage.url_for(display_key(item)) }}" alt="Current photo" width="240" />
+      {% endif %}
+      <img class="preview" id="preview" alt="Preview of the chosen photo" width="240" hidden />
+      <input class="input" id="image" name="image" type="file" data-resize data-preview="#preview" data-hide="#current-photo" accept="image/jpeg,image/png,image/webp"  />
+      <p class="caption">{{ "Choose a new photo to replace the current one." if item else "JPEG, PNG or WebP." }}</p>
+      {{ err("image") }}
+    </div>
+    {% endif %}
+
+    <div class="form-grid">
+      <div class="field {{ 'has-error' if errors.get('category') }} {{ 'low' if 'category' in low_fields }}">
+        <label for="category">Category</label>
+        <select
+          id="category"
+          name="category"
+          required
+          hx-get="/items/subtype-options"
+          hx-target="#subtype-field"
+          hx-swap="innerHTML"
+          hx-include="[name='subtype']"
+          hx-trigger="change"
+        >
+          <option value="">Choose a category</option>
+          {% for c in vocab.SUBTYPES %}
+            <option value="{{ c.value }}" {{ "selected" if values.get("category") == c.value }}>{{ c.value|capitalize }}</option>
+          {% endfor %}
+        </select>
+        {{ err("category") }}{{ note("category") }}
+      </div>
+
+      <div id="subtype-field">{% include "_subtype_select.html" %}</div>
+
+      <div class="field {{ 'has-error' if errors.get('primary_color') }} {{ 'low' if 'primary_color' in low_fields }}">
+        <label for="primary_color">Primary color</label>
+        <select id="primary_color" name="primary_color" required>
+          <option value="">Choose a color</option>
+          {% for c in vocab.COLORS %}
+            <option value="{{ c.name }}" {{ "selected" if values.get("primary_color") == c.name }}>{{ c.name|capitalize }}</option>
+          {% endfor %}
+        </select>
+        {{ err("primary_color") }}{{ note("primary_color") }}
+      </div>
+
+      <fieldset class="wide {{ 'has-error' if errors.get('secondary_colors') }} {{ 'low' if 'secondary_colors' in low_fields }}">
+        <legend class="legend">Secondary colors</legend>
+        <div class="chips">
+          {% for c in vocab.COLORS %}
+            <label class="chip">
+              <input type="checkbox" name="secondary_colors" value="{{ c.name }}" {{ "checked" if c.name in values.get("secondary_colors", []) }} />
+              <span class="swatch" style="background: {{ c.hex }}"></span>{{ c.name }}
+            </label>
+          {% endfor %}
+        </div>
+        {{ err("secondary_colors") }}{{ note("secondary_colors") }}
+      </fieldset>
+
+      <fieldset class="wide {{ 'has-error' if errors.get('seasons') }} {{ 'low' if 'seasons' in low_fields }}">
+        <legend class="legend">Seasons</legend>
+        <div class="chips">
+          {% for s in vocab.SEASONS %}
+            <label class="chip">
+              <input type="checkbox" name="seasons" value="{{ s }}" {{ "checked" if s in values.get("seasons", []) }} />{{ s|capitalize }}
+            </label>
+          {% endfor %}
+        </div>
+        {{ err("seasons") }}{{ note("seasons") }}
+      </fieldset>
+
+      <div class="field {{ 'has-error' if errors.get('pattern') }} {{ 'low' if 'pattern' in low_fields }}">
+        <label for="pattern">Pattern</label>
+        <select id="pattern" name="pattern">
+          <option value="">Not set</option>
+          {% for p in vocab.PATTERNS %}
+            <option value="{{ p }}" {{ "selected" if values.get("pattern") == p }}>{{ p|capitalize }}</option>
+          {% endfor %}
+        </select>
+        {{ err("pattern") }}{{ note("pattern") }}
+      </div>
+
+      <div class="field {{ 'has-error' if errors.get('material') }} {{ 'low' if 'material' in low_fields }}">
+        <label for="material">Material</label>
+        <select id="material" name="material">
+          <option value="">Not set</option>
+          {% for m in vocab.MATERIALS %}
+            <option value="{{ m }}" {{ "selected" if values.get("material") == m }}>{{ m|capitalize }}</option>
+          {% endfor %}
+        </select>
+        {{ err("material") }}{{ note("material") }}
+      </div>
+
+      <div class="field {{ 'has-error' if errors.get('layer_role') }} {{ 'low' if 'layer_role' in low_fields }}">
+        <label for="layer_role">Layer</label>
+        <select id="layer_role" name="layer_role">
+          <option value="">Not set</option>
+          {% for r in vocab.LAYER_ROLES %}
+            <option value="{{ r }}" {{ "selected" if values.get("layer_role") == r }}>{{ r|capitalize }}</option>
+          {% endfor %}
+        </select>
+        {{ err("layer_role") }}{{ note("layer_role") }}
+      </div>
+
+      <div class="field {{ 'has-error' if errors.get('name') }} {{ 'low' if 'name' in low_fields }}">
+        <label for="name">Name (optional)</label>
+        <input class="input" id="name" name="name" type="text" maxlength="80" placeholder="Blue Oxford shirt" value="{{ values.get('name', '') }}" />
+        {{ err("name") }}{{ note("name") }}
+      </div>
+
+      <div class="field wide {{ 'has-error' if errors.get('notes') }} {{ 'low' if 'notes' in low_fields }}">
+        <label for="notes">Notes (optional)</label>
+        <textarea id="notes" name="notes" rows="3" maxlength="2000">{{ values.get("notes", "") }}</textarea>
+        {{ err("notes") }}{{ note("notes") }}
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn btn-primary" type="submit">{{ "Confirm tags" if review else "Save changes" }}</button>
+      <a class="btn btn-outline" href="{{ cancel_url or ('/closet' if review else '/items/%d' % item.id) }}">Cancel</a>
+    </div>
+  </form>
+  </div>
+
+{% endblock %}

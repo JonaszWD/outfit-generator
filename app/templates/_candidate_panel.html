@@ -1,0 +1,199 @@
+{% set c = data.candidate %}
+{% set status = c.status.value %}
+{% set item = data.item %}
+{% set result = data.result %}
+<section
+  id="panel"
+  class="stack"
+  {% if status in ("pending", "processing") %}
+    hx-get="/candidates/{{ c.id }}/panel" hx-trigger="every 2s" hx-swap="outerHTML"
+  {% endif %}
+>
+  {% if status in ("pending", "processing") %}
+    <div class="panel center" role="status">
+      <span class="spinner spinner-inline" aria-hidden="true"></span>
+      <h1 class="display-sm">{{ "Waiting for a free slot…" if status == "pending" else "Reading the product and counting outfits…" }}</h1>
+      <p class="caption">You can leave; the result will be in past analyses.</p>
+    </div>
+
+  {% elif status == "failed" %}
+    <div class="panel stack" role="alert">
+      <h1 class="display-sm">We couldn't analyze that</h1>
+      <p class="error">{{ c.error or "Something went wrong." }}</p>
+      <form class="stack" method="post" action="/candidates" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+        <div class="field">
+          <label for="image">Photo of the piece</label>
+          <input class="input" id="image" name="image" type="file" data-resize accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" required />
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-primary" type="submit">Analyze photo</button>
+        </div>
+      </form>
+      <div class="form-actions">
+        <form method="post" action="/candidates/{{ c.id }}/retry">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+          <button class="btn btn-outline" type="submit">Try the link again</button>
+        </form>
+        <form method="post" action="/candidates/{{ c.id }}/discard">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+          <button class="btn btn-text" type="submit">Discard</button>
+        </form>
+      </div>
+    </div>
+
+  {% elif result %}
+    <div class="candidate-head">
+      {% if item %}
+        <img class="candidate-photo" src="{{ storage.url_for(display_key(item)) }}" alt="{{ c.title or 'The piece' }}" />
+      {% endif %}
+      <div class="stack">
+        <h1 class="display-md">{{ c.title or ((item.name or item.subtype or "Uploaded photo")|capitalize if item else "Uploaded photo") }}</h1>
+        <p class="caption">
+          {% if c.brand %}{{ c.brand }} · {% endif %}
+          {% if c.price %}{{ "%.2f"|format(c.price) }}{% if c.product_info and c.product_info.get("currency") %} {{ c.product_info.get("currency") }}{% endif %} · {% endif %}
+          {% if c.url %}{{ c.url.split("/")[2] }}{% else %}your photo{% endif %}
+        </p>
+      </div>
+    </div>
+
+    <div class="panel stack verdict verdict-{{ result.verdict_level }}">
+      <p class="caption-uppercase">{{ "Works with" if result.kind == "accessory" else "New outfits" }}</p>
+      <p class="display-xl headline-number">{{ "{:,}".format(result.new_outfits) }}</p>
+      <p class="body-strong">{{ result.verdict }}.</p>
+      {% if result.closet_size %}
+        <p class="caption">
+          {% if result.kind == "outfit" %}
+            Your closet makes {{ "{:,}".format(result.closet_total_before) }} outfits now and would make {{ "{:,}".format(result.closet_total_after) }} with this piece.
+          {% else %}
+            Accessories finish outfits instead of creating new ones: it fits {{ "{:,}".format(result.outfits_with_piece) }} of your {{ "{:,}".format(result.closet_total_before) }} outfits.
+          {% endif %}
+        </p>
+      {% endif %}
+    </div>
+
+    {% if result.verdict_level == "empty" %}
+      <div class="orb-card">
+        <h2 class="display-sm">Your closet is empty</h2>
+        <p>Add and confirm a few items first, then we can tell you what this piece would unlock.</p>
+        <a class="btn btn-primary" href="/items/new" data-dialog-open="#add-sheet">Add photos</a>
+      </div>
+    {% endif %}
+
+    {% if result.missing_slots %}
+      <div class="panel stack">
+        <h2 class="title-md">Why no outfits yet</h2>
+        <ul class="reasons">{% for message in result.missing_slots %}<li>{{ message }}</li>{% endfor %}</ul>
+      </div>
+    {% endif %}
+
+    {% if result.redundancy.level != "none" and result.redundancy.item_id in data.items %}
+      {% set twin = data.items[result.redundancy.item_id] %}
+      <div class="panel redundancy">
+        <img class="rank-thumb" src="{{ storage.url_for(card_key(twin)) }}" alt="" />
+        <p>
+          <span class="badge">{{ "Near-identical" if result.redundancy.level == "near-identical" else "Similar" }}</span>
+          You already own a {{ result.redundancy.description }}
+          (<a href="/items/{{ twin.id }}">{{ twin.name or twin.subtype }}</a>).
+        </p>
+      </div>
+    {% endif %}
+
+    {% if result.examples %}
+      <h2 class="display-sm">Outfits it would make</h2>
+      <div class="outfit-grid">
+        {% for example in result.examples %}
+          <article class="card outfit">
+            <div class="outfit-tiles">
+              {% for item_id in example.item_ids %}
+                {% set piece = data.items.get(item_id) %}
+                {% if piece %}
+                  <img
+                    class="{{ 'is-candidate' if item and item_id == item.id }}"
+                    src="{{ storage.url_for(card_key(piece)) }}"
+                    alt="{{ piece.name or piece.subtype }}"
+                    title="{{ piece.name or piece.subtype }}"
+                    loading="lazy"
+                  />
+                {% endif %}
+              {% endfor %}
+            </div>
+            <div class="card-body">
+              <span class="badge">Score {{ (example.score * 100)|round|int }}%</span>
+              <ul class="reasons">{% for reason in example.reasons %}<li>{{ reason }}</li>{% endfor %}</ul>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <div class="stats-columns">
+      {% if result.pairs_with %}
+        <section>
+          <h2 class="display-sm">Pairs best with</h2>
+          <ul class="rank-list">
+            {% for item_id, count in result.pairs_with %}
+              {% set piece = data.items.get(item_id) %}
+              {% if piece %}
+                <li class="rank-row">
+                  <img class="rank-thumb" src="{{ storage.url_for(card_key(piece)) }}" alt="" />
+                  <a href="/items/{{ piece.id }}">{{ piece.name or (piece.subtype or "")|capitalize }}</a>
+                  <span class="caption">{{ count }} outfit{{ "" if count == 1 else "s" }}</span>
+                </li>
+              {% endif %}
+            {% endfor %}
+          </ul>
+        </section>
+      {% endif %}
+      {% if result.never_pairs_with %}
+        <section>
+          <h2 class="display-sm">Never pairs with</h2>
+          <ul class="rank-list">
+            {% for item_id in result.never_pairs_with %}
+              {% set piece = data.items.get(item_id) %}
+              {% if piece %}
+                <li class="rank-row">
+                  <img class="rank-thumb" src="{{ storage.url_for(card_key(piece)) }}" alt="" />
+                  <a href="/items/{{ piece.id }}">{{ piece.name or (piece.subtype or "")|capitalize }}</a>
+                </li>
+              {% endif %}
+            {% endfor %}
+          </ul>
+          {% if result.never_pairs_total > result.never_pairs_with|length %}
+            <p class="caption">and {{ result.never_pairs_total - result.never_pairs_with|length }} more</p>
+          {% endif %}
+        </section>
+      {% endif %}
+    </div>
+
+    {% if item %}
+      {% set tags = ((item.ai_tags or {}).get("tags") or {}) if not item.tags_confirmed else {} %}
+      <div class="panel stack">
+        <h2 class="title-md">How we read the piece</h2>
+        <p>
+          <span class="badge">{{ (item.category.value if item.category else tags.get("category", "?")) }}</span>
+          <span class="badge">{{ item.subtype or tags.get("subtype", "?") }}</span>
+          <span class="badge">{{ item.primary_color or tags.get("primary_color", "?") }}</span>
+        </p>
+        {% for flag in ((item.ai_tags or {}).get("flags") or []) %}<p class="caption">{{ flag }}</p>{% endfor %}
+        <a class="btn btn-outline" href="/candidates/{{ c.id }}/edit">Fix tags</a>
+      </div>
+    {% endif %}
+
+    <div class="form-actions">
+      {% if data.adopted %}
+        <span class="badge">In your closet</span>
+        <a class="btn btn-outline" href="/items/{{ item.id }}">View in closet</a>
+      {% else %}
+        <form method="post" action="/candidates/{{ c.id }}/add">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+          <button class="btn btn-primary" type="submit">Add to my closet</button>
+        </form>
+        <form method="post" action="/candidates/{{ c.id }}/discard">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+          <button class="btn btn-outline" type="submit">Discard</button>
+        </form>
+      {% endif %}
+    </div>
+  {% endif %}
+</section>

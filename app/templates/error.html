@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}{{ status }} · Wardrobe{% endblock %}
+{% block content %}
+  <div class="center">
+    <h1 class="display-md">
+      {% if status == 404 %}Not found
+      {% elif status == 403 %}Not allowed
+      {% elif status == 429 %}Slow down a little
+      {% elif status == 500 %}Something went wrong
+      {% else %}That did not work{% endif %}
+    </h1>
+    <p>
+      {% if status == 404 %}We could not find that page.
+      {% elif status == 403 %}That request could not be verified. Reload the page and try again.
+      {% elif status == 429 %}{{ detail or "Too many requests." }}
+      {% elif status == 500 %}It is not your fault, and we have noted it. Try again in a moment.
+      {% else %}{{ detail }}{% endif %}
+    </p>
+    <a class="btn btn-outline" href="/closet">Back to your closet</a>
+  </div>
+{% endblock %}

@@ -1,0 +1,63 @@
+{% set state = item.tagging_status.value %}
+<div
+  class="card"
+  id="item-{{ item.id }}"
+  {% if state == "pending" and process_in_request() %}
+    {# Serverless: no background worker, so the card asks for its own processing, one at a time. #}
+    hx-post="/items/{{ item.id }}/process" hx-trigger="load" hx-swap="outerHTML" hx-sync="body:queue all"
+  {% elif state in ("pending", "processing") %}
+    hx-get="/items/{{ item.id }}/status" hx-trigger="every 2s" hx-swap="outerHTML"
+  {% endif %}
+>
+  {% if state in ("pending", "processing") %}
+    <div class="card-link">
+      <div class="card-media">
+        <img src="{{ storage.url_for(card_key(item)) }}" alt="Photo being processed" loading="lazy" />
+        <span class="spinner" role="status" aria-label="Tagging in progress"></span>
+      </div>
+      <div class="card-body">
+        <p class="body-strong">Tagging…</p>
+        <span class="badge">{{ "Queued" if state == "pending" else "Processing" }}</span>
+      </div>
+    </div>
+  {% elif state == "failed" %}
+    <a class="card-link" href="/items/{{ item.id }}/review">
+      <div class="card-media"><img src="{{ storage.url_for(card_key(item)) }}" alt="Untagged item" loading="lazy" /></div>
+    </a>
+    <div class="card-body">
+      <p class="error">{{ item.tagging_error or "Tagging failed." }}</p>
+      <div class="card-meta">
+        <span class="badge">Failed</span>
+        <button
+          class="btn-text"
+          type="button"
+          hx-post="/items/{{ item.id }}/retag"
+          hx-target="#item-{{ item.id }}"
+          hx-swap="outerHTML"
+        >Retry</button>
+        <a href="/items/{{ item.id }}/review">Tag by hand</a>
+      </div>
+    </div>
+  {% elif not item.tags_confirmed %}
+    <a class="card-link" href="/items/{{ item.id }}/review">
+      <div class="card-media"><img src="{{ storage.url_for(card_key(item)) }}" alt="Item needing review" loading="lazy" /></div>
+      <div class="card-body">
+        <p class="body-strong">{{ ((item.ai_tags or {}).get("tags") or {}).get("subtype", "New item")|capitalize }}</p>
+        <span class="badge">Tagged, needs review</span>
+      </div>
+    </a>
+  {% else %}
+    <a class="card-link" href="/items/{{ item.id }}">
+      <div class="card-media"><img src="{{ storage.url_for(card_key(item)) }}" alt="{{ item.name or item.subtype }}" loading="lazy" /></div>
+      <div class="card-body">
+        <p class="body-strong">{{ item.name or (item.subtype or "")|capitalize }}</p>
+        <div class="card-meta">
+          <span class="swatch" style="background: {{ color_hex(item.primary_color) }}" title="{{ item.primary_color }}"></span>
+          {% if item.archived_at %}<span class="badge">Archived</span>
+          {% elif item.availability.value == "laundry" %}<span class="badge">In the laundry</span>
+          {% elif item.availability.value == "unavailable" %}<span class="badge">Unavailable</span>{% endif %}
+        </div>
+      </div>
+    </a>
+  {% endif %}
+</div>

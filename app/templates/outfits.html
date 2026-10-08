@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Outfits · Wardrobe{% endblock %}
+{% block content %}
+  <div class="page-head">
+    <h1 class="display-md">Outfits</h1>
+  </div>
+
+  <section class="panel weather-strip" aria-labelledby="weather-heading">
+    <h2 class="title-md" id="weather-heading">Today's weather</h2>
+    {% if strip %}
+      <p class="body-strong">{{ strip.temperature }} <span class="caption">({{ strip.range }})</span>{% if strip.rain %} · Rain likely{% endif %}</p>
+      <p class="caption">{{ strip.note }}.</p>
+      <form hx-post="/outfits/generate" hx-target="#suggestions" hx-swap="innerHTML">
+        <input type="hidden" name="today" value="1" />
+        <button class="btn btn-primary" type="submit" {% if style_refs %}hx-include="#style-ai"{% endif %}>Dress me for today</button>
+      </form>
+    {% else %}
+      <p class="caption" role="status">{{ weather_notice }}</p>
+      {% if not has_city %}<a class="btn btn-outline" href="/settings/preferences">Set home city</a>{% endif %}
+    {% endif %}
+  </section>
+
+  <form
+    class="filters"
+    hx-post="/outfits/generate"
+    hx-target="#suggestions"
+    hx-swap="innerHTML"
+  >
+    <select name="season" aria-label="Season">
+      <option value="">Any season</option>
+      {% for s in seasons %}<option value="{{ s }}">{{ s|capitalize }}</option>{% endfor %}
+    </select>
+    {% if strip %}
+      <label class="chip"><input type="checkbox" name="today" value="1" /> Use today's weather</label>
+    {% endif %}
+    {% if style_refs %}
+      <label class="chip"><input type="checkbox" id="style-ai" name="style_ai" value="1" {{ "checked" if style_on }} /> Match my reference photos (AI)</label>
+    {% endif %}
+    <button class="btn btn-outline" type="submit">Suggest outfits</button>
+  </form>
+  {% if not style_refs %}
+    <p class="caption">Want suggestions that echo outfits you admire? <a href="/settings/style">Add reference photos</a>.</p>
+  {% endif %}
+
+  <section id="suggestions" aria-live="polite"></section>
+
+  <h2 class="display-sm saved-heading">Saved outfits</h2>
+  <form class="filters" method="get" action="/outfits">
+    <select name="occasion" aria-label="Show saved outfits for">
+      <option value="">All occasions</option>
+      {% for o in occasions %}<option value="{{ o }}" {{ "selected" if o == saved_filter }}>{{ o|capitalize }}</option>{% endfor %}
+    </select>
+    <button class="btn btn-outline" type="submit">Filter</button>
+    <a class="btn btn-text" href="/planner">Weekly planner</a>
+  </form>
+  {% if saved %}
+    <div class="outfit-grid">
+      {% for card in saved %}{% include "_outfit_card.html" %}{% endfor %}
+    </div>
+  {% else %}
+    <p class="caption">Nothing saved yet.</p>
+  {% endif %}
+{% endblock %}

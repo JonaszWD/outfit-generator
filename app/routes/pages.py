@@ -1,13 +1,14 @@
-from pathlib import Path
-
 from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
+
+from app.deps import OptionalUser
+from app.templating import render
 
 router = APIRouter()
-templates = Jinja2Templates(directory=Path(__file__).resolve().parent.parent / "templates")
 
 
-@router.get("/", response_class=HTMLResponse)
-def index(request: Request) -> HTMLResponse:
-    return templates.TemplateResponse(request, "index.html")
+@router.get("/", response_class=HTMLResponse, response_model=None)
+def index(request: Request, user: OptionalUser) -> Response:
+    if user is not None:
+        return RedirectResponse("/closet", status_code=303)
+    return render(request, "index.html")

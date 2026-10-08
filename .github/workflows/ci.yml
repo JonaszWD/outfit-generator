@@ -2,38 +2,40 @@ name: CI
 
 on:
   push:
+    branches: [main]
   pull_request:
 
 jobs:
-  check:
+  test:
     runs-on: ubuntu-latest
     services:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_USER: wardrobe
-          POSTGRES_PASSWORD: ci-password
-          POSTGRES_DB: wardrobe_test
-        ports:
-          - 5432:5432
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: wardrobe
+        ports: ["5432:5432"]
         options: >-
-          --health-cmd "pg_isready -U wardrobe -d wardrobe_test"
-          --health-interval 5s
-          --health-timeout 3s
-          --health-retries 10
+          --health-cmd "pg_isready -U postgres" --health-interval 5s
+          --health-timeout 3s --health-retries 10
     env:
-      ENV: test
-      DATABASE_URL: postgresql+psycopg://wardrobe:ci-password@localhost:5432/wardrobe_test
-      TEST_DATABASE_URL: postgresql+psycopg://wardrobe:ci-password@localhost:5432/wardrobe_test
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/wardrobe
+      TEST_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/wardrobe_test
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
-      - run: uv python install 3.12
+      # No cutout extra: this is the dependency set Vercel installs, so CI proves the app and
+      # its tests do not need rembg.
       - run: uv sync --frozen
+      - run: PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE wardrobe_test"
       - run: uv run ruff check .
       - run: uv run ruff format --check .
       - run: uv run mypy
-      - run: uv run alembic upgrade head
       - run: uv run pytest
+      - name: requirements.txt matches uv.lock
+        run: |
+          make vercel-requirements
+          git diff --exit-code requirements.txt

@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Add photos · Wardrobe{% endblock %}
+{% block content %}
+  <div class="page-head">
+    <h1 class="display-md">Add photos</h1>
+  </div>
+
+  {% if results %}
+    <div class="panel stack" role="status">
+      {% if results.created %}
+        <p class="body-strong">{{ results.created }} photo{{ "" if results.created == 1 else "s" }} uploaded. Tagging has started.</p>
+        <a class="btn btn-primary" href="/closet">Go to your closet</a>
+      {% endif %}
+      {% for name, message in results.problems %}
+        <p class="error">{% if name %}{{ name }}: {% endif %}{{ message }}</p>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <div class="panel stack">
+    <p>JPEG, PNG, WebP or HEIC, up to {{ max_files }} at a time. We remove the background and suggest tags; you confirm them. Location data is stripped first.</p>
+    <div class="form-actions">
+      <button class="btn btn-primary" type="button" data-dialog-open="#add-sheet">Add photos</button>
+      <a class="btn btn-outline" href="/closet">Cancel</a>
+    </div>
+  </div>
+
+{% endblock %}

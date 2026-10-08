@@ -3,9 +3,89 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="htmx-config" content='{"allowEval": false, "includeIndicatorStyles": false}' />
     <title>{% block title %}Wardrobe{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@300&family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/static/style.css" />
+    <script src="/static/vendor/htmx.min.js" defer></script>
+    <script src="/static/app.js" defer></script>
   </head>
-  <body>
-    <main>{% block content %}{% endblock %}</main>
+  <body hx-headers='{"X-CSRF-Token": "{{ csrf_token }}"}'>
+    <a class="skip-link" href="#main">Skip to content</a>
+    {% set path = request.url.path %}
+    <svg class="sprite" aria-hidden="true" focusable="false">
+      <symbol id="i-closet" viewBox="0 0 24 24"><path d="M12 8V6.8a2 2 0 1 0-2-2"/><path d="m12 8-8.4 6.6a1.2 1.2 0 0 0 .7 2.2h15.4a1.2 1.2 0 0 0 .7-2.2L12 8z"/></symbol>
+      <symbol id="i-outfits" viewBox="0 0 24 24"><path d="M8.5 4 3 6.5 4.8 11 8 9.8V20h8V9.8l3.2 1.2L21 6.5 15.5 4a3.6 3.6 0 0 1-7 0z"/></symbol>
+      <symbol id="i-add" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+      <symbol id="i-analyze" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="m20 20-4.2-4.2"/></symbol>
+      <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.25"/><circle cx="12" cy="12" r="1.25"/><circle cx="18.5" cy="12" r="1.25"/></symbol>
+    </svg>
+    <div class="app">
+    <header class="top-nav">
+      <div class="container">
+        <a class="wordmark" href="{{ '/closet' if logged_in else '/' }}">Wardrobe</a>
+        {% if not logged_in %}
+        <nav class="nav-links" aria-label="Account">
+          <a href="/login">Log in</a>
+          <a class="btn btn-primary" href="/register">Create account</a>
+        </nav>
+        {% endif %}
+      </div>
+    </header>
+    <main id="main" class="container">{% block content %}{% endblock %}</main>
+    {% if logged_in %}
+    <nav class="tab-bar" aria-label="Main">
+      <a class="tab" href="/closet" {{ 'aria-current=page' if path == '/closet' or path.startswith('/items') and path != '/items/new' }}><svg class="icon" aria-hidden="true"><use href="#i-closet"/></svg>Closet</a>
+      <a class="tab" href="/outfits" {{ 'aria-current=page' if path.startswith('/outfits') }}><svg class="icon" aria-hidden="true"><use href="#i-outfits"/></svg>Outfits</a>
+      <button class="tab tab-add" type="button" aria-label="Add photos" data-dialog-open="#add-sheet"><svg class="icon" aria-hidden="true"><use href="#i-add"/></svg></button>
+      <a class="tab" href="/analyze" {{ 'aria-current=page' if path.startswith('/analyze') or path.startswith('/candidates') }}><svg class="icon" aria-hidden="true"><use href="#i-analyze"/></svg>Analyze</a>
+      <button class="tab" type="button" data-dialog-open="#more-sheet" {{ 'aria-current=page' if path.startswith('/planner') or path.startswith('/closet/stats') or path.startswith('/account') }}><svg class="icon" aria-hidden="true"><use href="#i-more"/></svg>More</button>
+    </nav>
+    <dialog class="sheet" id="add-sheet" aria-label="Add photos">
+      <form id="add-form" method="post" action="/items" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+        <input class="visually-hidden" id="pick-library" name="images" type="file" multiple data-autosubmit data-resize
+               accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif" />
+        <input class="visually-hidden" id="pick-camera" name="images" type="file" capture="environment" data-autosubmit data-resize
+               accept="image/*" />
+        <div class="sheet-links">
+          <label for="pick-library">Choose from photos</label>
+          <label for="pick-camera" data-camera-fallback>Take photo now</label>
+          <button class="sheet-logout" type="button" data-camera-open="#camera-dialog" hidden>Take photo now</button>
+        </div>
+      </form>
+      <button class="btn btn-outline" type="button" data-dialog-close>Cancel</button>
+    </dialog>
+    <dialog class="camera-dialog" id="camera-dialog" aria-labelledby="camera-title">
+      <div class="stack">
+        <h2 class="display-sm" id="camera-title">Take a photo</h2>
+        <video class="camera-video" autoplay playsinline muted></video>
+        <p class="error" role="alert" data-camera-error hidden></p>
+        <p class="caption" role="status" data-camera-count></p>
+        <div class="form-actions">
+          <button class="btn btn-primary" type="button" data-camera-shoot>Take photo</button>
+          <button class="btn btn-outline" type="button" data-camera-done>Done</button>
+        </div>
+      </div>
+    </dialog>
+    <dialog class="sheet" id="more-sheet" aria-label="More">
+      <nav class="sheet-links" aria-label="More">
+        <a href="/planner">Planner</a>
+        <a href="/closet/stats">Stats</a>
+        <a href="/account">Account</a>
+        <form method="post" action="/logout" class="inline-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+          <button class="sheet-logout" type="submit">Log out</button>
+        </form>
+      </nav>
+      <button class="btn btn-outline" type="button" data-dialog-close>Close</button>
+    </dialog>
+    {% endif %}
+    </div>
   </body>
 </html>
