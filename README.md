@@ -148,3 +148,7 @@ accounts) is covered by tests and has been used end to end. The Vercel deploymen
 storage and the style-reference backends were built against documentation and mocks; the Gemini
 tagger was also run on real photos. Without a cutout model, photos are shown as uploaded. The
 scraper reads only the page you paste and does not execute JavaScript by default.
+
+## License
+
+[MIT](LICENSE)
